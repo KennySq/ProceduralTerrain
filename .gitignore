@@ -1,0 +1,10 @@
+
+.vs/ProceduralTerrain/v16/
+
+*.sln
+
+ProceduralTerrain/x64/Debug/
+
+x64/Debug/
+
+*.filters
