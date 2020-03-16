@@ -32,6 +32,8 @@ class Core
 	ID3D11GeometryShader* TerrainGS = nullptr;
 	ID3D11InputLayout* TerrainIL = nullptr;
 
+	Terrain* MainTerrain = nullptr;
+
 #ifndef _DEFERRED
 	DepthStencil2D* DepthStencil = nullptr;
 #endif
@@ -78,6 +80,9 @@ public:
 
 	}
 
+	HRESULT AllocTerrainMeshBuffer(Terrain** AllocTerrain);
+	HRESULT AllocTerrainInstanceBuffer(Terrain** AllocTerrain);
+
 	HRESULT AllocConstantBuffer(Model* AllocModel);
 	HRESULT AllocMeshBuffer(Model* AllocModel);
 	HRESULT GenerateMaterial(Material*& OutMaterial, string Path);
@@ -87,6 +92,12 @@ public:
 	void DrawGSInstance(Instance& DrawInstance);
 	void ExtendGSInstance(Instance& DrawInstance);
 	
+#ifdef _DEBUG
+	void DrawTerrainDebug(Terrain* DrawTerrain);
+#endif
+
+	void DrawInstanceInstanced(Instance& DrawObject, UINT InstanceCount);
+
 	_inline void CacheInstance(Instance& Inst) { assert(&Inst); SelectedScene->AddInstance(Inst); }
 	_inline void CacheBuffer(MeshBuffer& Buffer) { assert(&Buffer); SelectedScene->AddMeshBuffer(Buffer); }
 	_inline void CacheMaterial(Material& Mat, string Name) { assert(&Mat); SelectedScene->AddMaterial(Name, &Mat); }

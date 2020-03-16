@@ -58,20 +58,27 @@ HRESULT Core::Intialize()
 	SelectedScene = new Scene();
 	
 	CachePrimitives();
-	AllocMeshBuffer(ModelCache[1]);
-	AllocConstantBuffer(ModelCache[1]);
-	StreamBuffer(Device, &ModelCache[1]->ModelGeoBuffer);
+	
+	Terrain::MakeTerrain(&MainTerrain, 32);
+	AllocTerrainMeshBuffer(&MainTerrain);
+	AllocTerrainInstanceBuffer(&MainTerrain);
+
+	//AllocMeshBuffer(ModelCache[1]);
+	//AllocConstantBuffer(ModelCache[1]);
+	//StreamBuffer(Device, &ModelCache[1]->ModelGeoBuffer);
 
 	GenerateMaterial(SimpleMat, "TestShader.hlsl");
+
+	MainTerrain->Mat = SimpleMat;
 	
-	CompileVertexShader(Device, "TerrainRenderVS.hlsl", "TerrainRenderVS", &TerrainRenderVS, &TerrainIL);
-	CompileVertexShader(Device, "TerrainVS.hlsl","TerrainVS", &TerrainVS, &TerrainIL);
-	CompileGeometryShaderForStreamOutput(Device, "TerrainGS.hlsl", "TerrainGS", &TerrainGS);
-	CompilePixelShader(Device, "TerrainPS.hlsl", "TerrainPS", &TerrainPS);
+	//CompileVertexShader(Device, "TerrainRenderVS.hlsl", "TerrainRenderVS", &TerrainRenderVS, &TerrainIL);
+	//CompileVertexShader(Device, "TerrainVS.hlsl","TerrainVS", &TerrainVS, &TerrainIL);
+	//CompileGeometryShaderForStreamOutput(Device, "TerrainGS.hlsl", "TerrainGS", &TerrainGS);
+	//CompilePixelShader(Device, "TerrainPS.hlsl", "TerrainPS", &TerrainPS);
 
-	SimpleTerrain->RenderModel = ModelCache[1];
+	//SimpleTerrain->RenderModel = ModelCache[1];
 
-	SelectedScene->AddInstance(*SimpleTerrain);
+	//SelectedScene->AddInstance(*SimpleTerrain);
 
 	//ModelCache[0]->ModelMaterial = SimpleMat;
 	//SimpleCube->RenderModel = ModelCache[0];
@@ -89,10 +96,12 @@ void Core::Render(float Delta)
 {
 	static bool First = true;
 
-	if (First)
-		ExtendGSInstance(*SelectedScene->GetInstances()[0]);
-	else
-		DrawGSInstance(*SelectedScene->GetInstances()[0]);
+	//if (First)
+	//	ExtendGSInstance(*SelectedScene->GetInstances()[0]);
+	//else
+	//	DrawGSInstance(*SelectedScene->GetInstances()[0]);
+
+	DrawTerrainDebug(MainTerrain);
 
 	First = false;
 
@@ -107,6 +116,73 @@ void Core::Release()
 	Context->Release();
 	SwapChain->Release();
 	
+}
+
+HRESULT Core::AllocTerrainMeshBuffer(Terrain** AllocTerrain)
+{
+	HRESULT Result;
+	D3D11_BUFFER_DESC BufferDesc{};
+
+	D3D11_SUBRESOURCE_DATA SubData{};
+#ifdef _DEBUG
+
+	
+
+	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	BufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	BufferDesc.ByteWidth = sizeof(Vertex) * AllocTerrain[0]->DebugMesh.Vertices.size();
+
+	SubData.pSysMem = AllocTerrain[0]->DebugMesh.Vertices.data();
+
+	Result = Device->CreateBuffer(&BufferDesc, &SubData, &AllocTerrain[0]->DebugVB);
+
+	if (FAILED(Result))
+		return Result;
+
+	BufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	BufferDesc.ByteWidth = sizeof(Index) * AllocTerrain[0]->DebugMesh.Indices.size();
+
+	SubData.pSysMem = AllocTerrain[0]->DebugMesh.Indices.data();
+
+	Result = Device->CreateBuffer(&BufferDesc, &SubData, &AllocTerrain[0]->DebugIB);
+
+	if (FAILED(Result))
+		return Result;
+
+	BufferDesc = {};
+
+	BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	BufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	BufferDesc.ByteWidth = sizeof(Matrices);
+
+	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->DebugCB);
+	if (FAILED(Result))
+		return Result;
+
+
+	//CacheBuffer(*AllocModel->ModelMeshBuffer);
+#endif
+
+
+	return S_OK;
+}
+
+HRESULT Core::AllocTerrainInstanceBuffer(Terrain** AllocTerrain)
+{
+	HRESULT Result;
+	D3D11_BUFFER_DESC Desc{};
+
+	Desc.ByteWidth = sizeof(XMFLOAT3) * AllocTerrain[0]->Capacity;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA SubData = { AllocTerrain[0]->WorldPosition, 0,0 };
+
+	Result = Device->CreateBuffer(&Desc, &SubData, &AllocTerrain[0]->DebugInstanceBuffer);
+	if (FAILED(Result))
+		return Result;
+
+	return S_OK;
 }
 
 HRESULT Core::AllocConstantBuffer(Model* AllocModel)
@@ -293,6 +369,34 @@ void Core::ExtendGSInstance(Instance& DrawInstance)
 	ID3D11Buffer* Temp = DrawInstance.RenderModel->ModelGeoBuffer->VertexStreamBuffer;
 	DrawInstance.RenderModel->ModelGeoBuffer->VertexStreamBuffer = DrawInstance.RenderModel->ModelGeoBuffer->StreamBuffer;
 	DrawInstance.RenderModel->ModelGeoBuffer->StreamBuffer = Temp;
+}
+
+void Core::DrawTerrainDebug(Terrain* DrawTerrain)
+{
+	static UINT Stride[] = { sizeof(Vertex), sizeof(XMFLOAT3) };
+	static UINT Offset[] = { 0, 0};
+	
+	static Matrices ConstBuf{};
+	static ID3D11Buffer* Buffer[] = {DrawTerrain->DebugVB, DrawTerrain->DebugInstanceBuffer};
+	
+	ConstBuf.World = XMMatrixIdentity();
+	ConstBuf.View = XMMatrixTranspose(SelectedScene->GetMainCamera()->GetView());
+	ConstBuf.Projection = XMMatrixTranspose(SelectedScene->GetMainCamera()->GetProjection());
+
+	Context->UpdateSubresource(DrawTerrain->DebugCB, 0, nullptr, &ConstBuf, 0, 0);
+
+	Context->VSSetShader(DrawTerrain->Mat->MaterialShader->VS, nullptr, 0);
+	Context->VSSetConstantBuffers(0, 1, &DrawTerrain->DebugCB);
+	Context->PSSetShader(DrawTerrain->Mat->MaterialShader->PS, nullptr, 0);
+	
+	Context->IASetVertexBuffers(0, 2, Buffer, Stride, Offset);
+	Context->IASetIndexBuffer(DrawTerrain->DebugIB, DXGI_FORMAT_R16_UINT, 0);
+	Context->IASetInputLayout(DrawTerrain->Mat->MaterialShader->InputLayouts.IL);
+	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+	Context->DrawInstanced(DrawTerrain->DebugMesh.Indices.size(), DrawTerrain->Capacity, 0, 0);
+	
+
 }
 
 HRESULT Core::Resize()

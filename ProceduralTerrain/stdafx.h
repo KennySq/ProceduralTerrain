@@ -54,4 +54,6 @@
 
 #include"BufferManager.h"
 
+#include"Terrain.h"
+
 #include"Core.h"

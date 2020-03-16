@@ -44,8 +44,7 @@ struct TerrainBuffer
 
 struct Cell
 {
-	XMVECTOR CellPoints[8];
-	float Density[8];
+	XMVECTOR CellPoints[8]; // (x,y,z) w(density)
 };
 
 #endif

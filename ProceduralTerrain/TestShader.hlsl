@@ -11,14 +11,16 @@ struct Vertex
 {
     float4 Position : POSITION;
     float3 Normal : NORMAL;
- //   float2 UV : TEXCOORD;
+    float2 UV : TEXCOORD0;
+    float3 WorldPosition : TEXCOORD1;
+    uint InstanceID : SV_InstanceID;
 };
 
 struct Pixel
 {
     float4 Projected : SV_POSITION;
     float3 Normal : TEXCOORD0;
-//    float2 UV : TEXCOORD1;
+    float2 UV : TEXCOORD1;
 };
 
 Pixel VS(Vertex Input)
@@ -26,6 +28,11 @@ Pixel VS(Vertex Input)
     Pixel Output = (Pixel) 0;
     
     Input.Position.w = 1.0f;
+    
+    Input.Position.x = Input.WorldPosition.x;
+    Input.Position.y = Input.WorldPosition.y;
+    Input.Position.z = Input.WorldPosition.z;
+    
 	Output.Projected = mul(Input.Position, World);
     
     Output.Projected = mul(Output.Projected, View);
