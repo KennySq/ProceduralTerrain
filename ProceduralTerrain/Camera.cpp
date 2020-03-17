@@ -8,7 +8,7 @@ Camera::Camera(float FOV_, float AR_, float Near_, float Far_)
 	Near = Near_;
 	Far = Far_;
 
-	View = XMMatrixLookAtLH(XMVectorSet(10.0, 10.0f, 10.0f, 1.0f), 
+	View = XMMatrixLookAtLH(XMVectorSet(5.0,5.0f, 5.0f, 1.0f), 
 					 XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 					 XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 

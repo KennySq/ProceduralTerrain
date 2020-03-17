@@ -8,6 +8,22 @@ void Terrain::MakeTerrain(Terrain** pOutTerrain, UINT Size)
 	//pOutTerrain[0]->SubDivideCells();
 }
 
+void Terrain::InitializeDebugCells()
+{
+	Vertex V[8] = { { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f},{0.0f, 0.0f} }, };
+	DebugVoxelMesh.Vertices.push_back(V[0]);
+	DebugVoxelMesh.Vertices.push_back(V[1]);
+	DebugVoxelMesh.Vertices.push_back(V[2]);
+	DebugVoxelMesh.Vertices.push_back(V[3]);
+	DebugVoxelMesh.Vertices.push_back(V[4]);
+	DebugVoxelMesh.Vertices.push_back(V[5]);
+	DebugVoxelMesh.Vertices.push_back(V[6]);
+	DebugVoxelMesh.Vertices.push_back(V[7]);
+
+
+
+}
+
 //void Terrain::SubDivideCells()
 //{
 //	static XMVECTOR Origin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
@@ -93,7 +109,6 @@ void Terrain::InitializeCells()
 	static int FlatIndex;
 	static XMVECTOR DebugVectors[4][4][4];
 
-
 	Capacity = Size * Size * Size;
 
 	for (int z = 0; z < Size; z++)
@@ -104,12 +119,29 @@ void Terrain::InitializeCells()
 			{
 				FlatIndex = x + Size * (y + Size * z);
 
-				WorldPosition[FlatIndex] = XMFLOAT3(Origin.m128_f32[0] + x,
+				TerrainInst.Instances[FlatIndex].WorldPosition = XMFLOAT3(Origin.m128_f32[0] + x,
 													 Origin.m128_f32[1] + y,
 													 Origin.m128_f32[2] + z);
-			
-				//XMStoreFloat3(&DebugVertex.WorldPosition, WorldPosition[x][y][z]);
+				
+				
 
+				Cells[FlatIndex].Density[0] = rand() % 10 * 0.1f;
+				Cells[FlatIndex].Density[1] = rand() % 10 * 0.1f;
+				Cells[FlatIndex].Density[2] = rand() % 10 * 0.1f;
+				Cells[FlatIndex].Density[3] = rand() % 10 * 0.1f;
+				Cells[FlatIndex].Density[4] = rand() % 10 * 0.1f;
+				Cells[FlatIndex].Density[5] = rand() % 10 * 0.1f;
+				Cells[FlatIndex].Density[6] = rand() % 10 * 0.1f;
+				Cells[FlatIndex].Density[7] = rand() % 10 * 0.1f;
+
+				TerrainInst.Instances[FlatIndex].Density[0] = Cells[FlatIndex].Density[0];
+				TerrainInst.Instances[FlatIndex].Density[1] = Cells[FlatIndex].Density[1];
+				TerrainInst.Instances[FlatIndex].Density[2] = Cells[FlatIndex].Density[2];
+				TerrainInst.Instances[FlatIndex].Density[3] = Cells[FlatIndex].Density[3];
+				TerrainInst.Instances[FlatIndex].Density[4] = Cells[FlatIndex].Density[4];
+				TerrainInst.Instances[FlatIndex].Density[5] = Cells[FlatIndex].Density[5];
+				TerrainInst.Instances[FlatIndex].Density[6] = Cells[FlatIndex].Density[6];
+				TerrainInst.Instances[FlatIndex].Density[7] = Cells[FlatIndex].Density[7];
 
 			}
 		}
@@ -127,8 +159,12 @@ Terrain::Terrain(UINT Size_)
 
 	long CellCount = (Size * Size * Size);
 
-	WorldPosition = new XMFLOAT3[CellCount];
+	TerrainInst.Instances = new TerrainInstanceData[CellCount];
 
+	//for (int i = 0; i < CellCount; i++)
+	//{
+	//	TerrainInst.Density[i] = new float[8];
+	//}
 	//WorldPosition = new XMFLOAT3 **[Size];
 	//for (int i = 0; i < Size; i++)
 	//{
@@ -149,7 +185,7 @@ Terrain::Terrain(UINT Size_)
 	//	}
 	//}
 
-	BlockCells = new Cell[Size];
+	Cells = new Cell[CellCount];
 
 	
 

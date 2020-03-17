@@ -11,14 +11,11 @@ struct TerrainMesh
 
 class Terrain
 {
-	Cell*** Cells = nullptr;
-	Cell* BlockCells = nullptr;
+	Cell* Cells = nullptr;
 
 	ID3D11Buffer* MainVB = nullptr, *StreamVB = nullptr;
 	ID3D11Buffer* MainIB = nullptr;
 	TerrainMesh MainMesh;
-
-
 
 	void SubDivideCells();
 	void InitializeCells();
@@ -31,22 +28,26 @@ public:
 
 	UINT Size = 0;
 	UINT Capacity = 0;
+
 #ifdef _DEBUG
 	ID3D11Buffer* DebugVB = nullptr;
 	ID3D11Buffer* DebugIB = nullptr;
 	ID3D11Buffer* DebugCB = nullptr;
 
+	ID3D11Buffer* DebugVoxelVB = nullptr;
+	ID3D11Buffer* DebugVoxelIB = nullptr;
+
 	ID3D11Buffer* DebugInstanceBuffer = nullptr;
 
 	TerrainMesh DebugMesh;
+	TerrainMesh DebugVoxelMesh;
 #endif
-	XMFLOAT3* WorldPosition = nullptr;
+
+	TerrainInstances TerrainInst;
+	//XMFLOAT3* WorldPosition = nullptr;
 
 	//TerrainMesh* const GetTerrainDebugMesh() { return &DebugMesh; }
 
 	static void MakeTerrain(Terrain** pOutTerrain, UINT Size);
-
-
-
+	void InitializeDebugCells();
 };
-

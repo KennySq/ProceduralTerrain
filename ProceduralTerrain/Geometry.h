@@ -23,6 +23,18 @@ struct Vertex
 	XMFLOAT2 UV;
 };
 
+struct TerrainInstanceData
+{
+	XMFLOAT3 WorldPosition; // [64]{3}
+	float Density[8];
+};
+
+
+struct TerrainInstances
+{
+	TerrainInstanceData* Instances = nullptr;
+};
+
 struct InputLayout
 {
 	vector<D3D11_INPUT_ELEMENT_DESC> InputElements;

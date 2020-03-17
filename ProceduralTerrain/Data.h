@@ -44,7 +44,23 @@ struct TerrainBuffer
 
 struct Cell
 {
-	XMVECTOR CellPoints[8]; // (x,y,z) w(density)
+	XMFLOAT3 CellPoints[8] = 
+	{
+		{ -1.0f, 1.0f, 1.0f }, // -++
+		{ 1.0f, 1.0f, 1.0f }, // +++
+		{ 1.0f, 1.0f, -1.0f }, // ++-
+		{ -1.0f, 1.0f, -1.0f }, // -+-
+		{ -1.0f, -1.0f, 1.0f }, // --+
+		{ 1.0f, -1.0f, 1.0f }, // +-+
+		{ 1.0f, -1.0f, -1.0f }, // +--
+		{ -1.0f, -1.0f, -1.0f }, // ---
+	
+	}; // (x,y,z) w(density)
+
+
+#ifdef _DEBUG
+	float Density[8];
+#endif
 };
 
 #endif

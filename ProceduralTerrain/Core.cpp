@@ -59,7 +59,7 @@ HRESULT Core::Intialize()
 	
 	CachePrimitives();
 	
-	Terrain::MakeTerrain(&MainTerrain, 32);
+	Terrain::MakeTerrain(&MainTerrain, 4);
 	AllocTerrainMeshBuffer(&MainTerrain);
 	AllocTerrainInstanceBuffer(&MainTerrain);
 
@@ -172,15 +172,41 @@ HRESULT Core::AllocTerrainInstanceBuffer(Terrain** AllocTerrain)
 	HRESULT Result;
 	D3D11_BUFFER_DESC Desc{};
 
-	Desc.ByteWidth = sizeof(XMFLOAT3) * AllocTerrain[0]->Capacity;
-	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	Desc.Usage = D3D11_USAGE_DEFAULT;
+	static TerrainInstances TInstance{};
+	UINT Capacity = AllocTerrain[0]->Capacity;
 
-	D3D11_SUBRESOURCE_DATA SubData = { AllocTerrain[0]->WorldPosition, 0,0 };
+	UINT InstanceSize = sizeof(XMFLOAT3) + (sizeof(XMFLOAT4) * 2);
+
+	Desc.ByteWidth = InstanceSize * Capacity;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	Desc.Usage = D3D11_USAGE_DEFAULT;//D3D11_USAGE_DYNAMIC;
+	//Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	//Desc.StructureByteStride = InstanceSize;
+
+	D3D11_SUBRESOURCE_DATA SubData = {AllocTerrain[0]->TerrainInst.Instances,0,0 };
+																/*
+																const void *pSysMem;
+																UINT SysMemPitch;
+																UINT SysMemSlicePitch;
+																*/
+	D3D11_MAPPED_SUBRESOURCE MapSub = {};
+
+	TerrainInstances* TInst;
 
 	Result = Device->CreateBuffer(&Desc, &SubData, &AllocTerrain[0]->DebugInstanceBuffer);
-	if (FAILED(Result))
-		return Result;
+	assert(Result == S_OK && "Failed to create debug instance buffer.");
+
+	//Result = Context->Map(AllocTerrain[0]->DebugInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MapSub);
+	//assert(Result == S_OK && "Failed to mapp debug instance buffer");
+	////MapSub.RowPitch = sizeof(XMFLOAT3) + (sizeof(float) * 8);
+	////MapSub.DepthPitch = 0;
+
+	//TInst = (TerrainInstances*)MapSub.pData;
+
+	//TInst->InstancesWorldPosition = AllocTerrain[0]->TerrainInst.WorldPosition;
+	////TInst->Density = 0;//AllocTerrain[0]->TerrainInst.Density;
+
+	//Context->Unmap(AllocTerrain[0]->DebugInstanceBuffer, 0);
 
 	return S_OK;
 }
@@ -373,7 +399,7 @@ void Core::ExtendGSInstance(Instance& DrawInstance)
 
 void Core::DrawTerrainDebug(Terrain* DrawTerrain)
 {
-	static UINT Stride[] = { sizeof(Vertex), sizeof(XMFLOAT3) };
+	static UINT Stride[] = { sizeof(Vertex), sizeof(TerrainInstanceData) };
 	static UINT Offset[] = { 0, 0};
 	
 	static Matrices ConstBuf{};
