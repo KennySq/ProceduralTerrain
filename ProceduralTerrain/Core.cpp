@@ -55,19 +55,24 @@ HRESULT Core::Intialize()
 	Material* TerrainMat = new Material();
 	Instance* SimpleTerrain = new Instance();
 	
+	TerrainVoxelShader = new Shader();
+
 	SelectedScene = new Scene();
 	
 	CachePrimitives();
 	
-	Terrain::MakeTerrain(&MainTerrain, 4);
+	Terrain::MakeTerrain(&MainTerrain, 16);
 	AllocTerrainMeshBuffer(&MainTerrain);
 	AllocTerrainInstanceBuffer(&MainTerrain);
+	AllocTerrainVoxelInstanceDebugBuffer(&MainTerrain);
 
 	//AllocMeshBuffer(ModelCache[1]);
 	//AllocConstantBuffer(ModelCache[1]);
 	//StreamBuffer(Device, &ModelCache[1]->ModelGeoBuffer);
 
 	GenerateMaterial(SimpleMat, "TestShader.hlsl");
+
+	CompileVoxelVertexShader(Device, "TestShader.hlsl", "VoxelVS", TerrainVoxelShader);
 
 	MainTerrain->Mat = SimpleMat;
 	
@@ -196,17 +201,37 @@ HRESULT Core::AllocTerrainInstanceBuffer(Terrain** AllocTerrain)
 	Result = Device->CreateBuffer(&Desc, &SubData, &AllocTerrain[0]->DebugInstanceBuffer);
 	assert(Result == S_OK && "Failed to create debug instance buffer.");
 
-	//Result = Context->Map(AllocTerrain[0]->DebugInstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MapSub);
-	//assert(Result == S_OK && "Failed to mapp debug instance buffer");
-	////MapSub.RowPitch = sizeof(XMFLOAT3) + (sizeof(float) * 8);
-	////MapSub.DepthPitch = 0;
+	return S_OK;
+}
 
-	//TInst = (TerrainInstances*)MapSub.pData;
+HRESULT Core::AllocTerrainVoxelInstanceDebugBuffer(Terrain** AllocTerrain)
+{
+	HRESULT Result;
 
-	//TInst->InstancesWorldPosition = AllocTerrain[0]->TerrainInst.WorldPosition;
-	////TInst->Density = 0;//AllocTerrain[0]->TerrainInst.Density;
+	D3D11_BUFFER_DESC Desc{};
+	D3D11_SUBRESOURCE_DATA SubResource{};
 
-	//Context->Unmap(AllocTerrain[0]->DebugInstanceBuffer, 0);
+	Desc.ByteWidth = AllocTerrain[0]->DebugVoxelMesh.Vertices.size() * sizeof(VoxelVertex);
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	SubResource.pSysMem = AllocTerrain[0]->DebugVoxelMesh.Vertices.data();
+
+	Result = Device->CreateBuffer(&Desc, &SubResource, &AllocTerrain[0]->DebugVoxelVB);
+	if (FAILED(Result))
+		return Result;
+
+	Desc = {};
+
+	Desc.ByteWidth = sizeof(Index) * AllocTerrain[0]->DebugVoxelMesh.Indices.size();
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+	SubResource.pSysMem = AllocTerrain[0]->DebugVoxelMesh.Indices.data();
+
+	Result = Device->CreateBuffer(&Desc, &SubResource, &AllocTerrain[0]->DebugVoxelIB);
+	if (FAILED(Result))
+		return Result;
 
 	return S_OK;
 }
@@ -399,11 +424,11 @@ void Core::ExtendGSInstance(Instance& DrawInstance)
 
 void Core::DrawTerrainDebug(Terrain* DrawTerrain)
 {
-	static UINT Stride[] = { sizeof(Vertex), sizeof(TerrainInstanceData) };
+	static UINT Stride[] = { sizeof(VoxelVertex), sizeof(TerrainInstanceData) };
 	static UINT Offset[] = { 0, 0};
 	
 	static Matrices ConstBuf{};
-	static ID3D11Buffer* Buffer[] = {DrawTerrain->DebugVB, DrawTerrain->DebugInstanceBuffer};
+	static ID3D11Buffer* Buffer[] = {DrawTerrain->DebugVoxelVB, DrawTerrain->DebugInstanceBuffer};
 	
 	ConstBuf.World = XMMatrixIdentity();
 	ConstBuf.View = XMMatrixTranspose(SelectedScene->GetMainCamera()->GetView());
@@ -411,16 +436,16 @@ void Core::DrawTerrainDebug(Terrain* DrawTerrain)
 
 	Context->UpdateSubresource(DrawTerrain->DebugCB, 0, nullptr, &ConstBuf, 0, 0);
 
-	Context->VSSetShader(DrawTerrain->Mat->MaterialShader->VS, nullptr, 0);
+	Context->VSSetShader(TerrainVoxelShader->VS, nullptr, 0);
 	Context->VSSetConstantBuffers(0, 1, &DrawTerrain->DebugCB);
 	Context->PSSetShader(DrawTerrain->Mat->MaterialShader->PS, nullptr, 0);
 	
 	Context->IASetVertexBuffers(0, 2, Buffer, Stride, Offset);
-	Context->IASetIndexBuffer(DrawTerrain->DebugIB, DXGI_FORMAT_R16_UINT, 0);
-	Context->IASetInputLayout(DrawTerrain->Mat->MaterialShader->InputLayouts.IL);
+	//Context->IASetIndexBuffer(DrawTerrain->DebugVoxelIB, DXGI_FORMAT_R16_UINT, 0);
+	Context->IASetInputLayout(TerrainVoxelShader->InputLayouts.IL);
 	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-	Context->DrawInstanced(DrawTerrain->DebugMesh.Indices.size(), DrawTerrain->Capacity, 0, 0);
+	Context->DrawInstanced(8, DrawTerrain->Capacity, 0, 0);
 	
 
 }

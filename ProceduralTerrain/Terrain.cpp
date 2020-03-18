@@ -5,22 +5,122 @@ void Terrain::MakeTerrain(Terrain** pOutTerrain, UINT Size)
 {
 	*pOutTerrain = new Terrain(Size);
 	pOutTerrain[0]->InitializeCells();
+	pOutTerrain[0]->InitializeDebugCells();
 	//pOutTerrain[0]->SubDivideCells();
 }
 
 void Terrain::InitializeDebugCells()
 {
-	Vertex V[8] = { { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f},{0.0f, 0.0f} }, };
-	DebugVoxelMesh.Vertices.push_back(V[0]);
-	DebugVoxelMesh.Vertices.push_back(V[1]);
-	DebugVoxelMesh.Vertices.push_back(V[2]);
-	DebugVoxelMesh.Vertices.push_back(V[3]);
-	DebugVoxelMesh.Vertices.push_back(V[4]);
-	DebugVoxelMesh.Vertices.push_back(V[5]);
-	DebugVoxelMesh.Vertices.push_back(V[6]);
-	DebugVoxelMesh.Vertices.push_back(V[7]);
+	
+	DebugVoxelMesh.Vertices.resize(8);
+
+	VoxelVertex V;
+
+	UINT Index = 0;
+	XMFLOAT3 Pos[8] = { 
+			{ -1.0f, 1.0f, 1.0f }, // -++
+		{ 1.0f, 1.0f, 1.0f }, // +++
+		{ 1.0f, 1.0f, -1.0f }, // ++-
+		{ -1.0f, 1.0f, -1.0f }, // -+-
+		{ -1.0f, -1.0f, 1.0f }, // --+
+		{ 1.0f, -1.0f, 1.0f }, // +-+
+		{ 1.0f, -1.0f, -1.0f }, // +--
+		{ -1.0f, -1.0f, -1.0f }, // ---
+	};
+
+	V.Position = Pos[0];
+	DebugVoxelMesh.Vertices[0] = V;
+
+	V.Position = Pos[1];
+	DebugVoxelMesh.Vertices[1] = V;
 
 
+	V.Position = Pos[2];
+	DebugVoxelMesh.Vertices[2] = V;
+
+
+	V.Position = Pos[3];
+	DebugVoxelMesh.Vertices[3] = V;
+
+
+	V.Position = Pos[4];
+	DebugVoxelMesh.Vertices[4] = V;
+
+	V.Position = Pos[5];
+	DebugVoxelMesh.Vertices[5] = V;
+
+
+	V.Position = Pos[6];
+	DebugVoxelMesh.Vertices[6] = V;
+
+
+	V.Position = Pos[7];
+	DebugVoxelMesh.Vertices[7] = V;
+
+	DebugVoxelMesh.Indices.push_back(0);
+	DebugVoxelMesh.Indices.push_back(0);
+	DebugVoxelMesh.Indices.push_back(0);
+	DebugVoxelMesh.Indices.push_back(0);
+	DebugVoxelMesh.Indices.push_back(0);
+	DebugVoxelMesh.Indices.push_back(0);
+	DebugVoxelMesh.Indices.push_back(0);
+	DebugVoxelMesh.Indices.push_back(0);
+	//DebugVoxelMesh.Indices.push_back(1);
+	//DebugVoxelMesh.Indices.push_back(2);
+	//DebugVoxelMesh.Indices.push_back(3);
+	//DebugVoxelMesh.Indices.push_back(4);
+	//DebugVoxelMesh.Indices.push_back(5);
+	//DebugVoxelMesh.Indices.push_back(6);
+	//DebugVoxelMesh.Indices.push_back(7);
+
+
+	//DebugVoxelMesh.Indices.push_back(1);
+	//DebugVoxelMesh.Indices.push_back(3);
+	//DebugVoxelMesh.Indices.push_back(2);
+
+	//DebugVoxelMesh.Indices.push_back(1);
+	//DebugVoxelMesh.Indices.push_back(0);
+	//DebugVoxelMesh.Indices.push_back(3);
+
+	//DebugVoxelMesh.Indices.push_back(5);
+	//DebugVoxelMesh.Indices.push_back(7);
+	//DebugVoxelMesh.Indices.push_back(6);
+
+	//DebugVoxelMesh.Indices.push_back(5);
+	//DebugVoxelMesh.Indices.push_back(4);
+	//DebugVoxelMesh.Indices.push_back(7);
+
+	//DebugVoxelMesh.Indices.push_back(2);
+	//DebugVoxelMesh.Indices.push_back(7);
+	//DebugVoxelMesh.Indices.push_back(6);
+
+	//DebugVoxelMesh.Indices.push_back(2);
+	//DebugVoxelMesh.Indices.push_back(3);
+	//DebugVoxelMesh.Indices.push_back(7);
+
+	//DebugVoxelMesh.Indices.push_back(1);
+	//DebugVoxelMesh.Indices.push_back(5);
+	//DebugVoxelMesh.Indices.push_back(0);
+
+	//DebugVoxelMesh.Indices.push_back(5);
+	//DebugVoxelMesh.Indices.push_back(4);
+	//DebugVoxelMesh.Indices.push_back(0);
+
+	//DebugVoxelMesh.Indices.push_back(3);
+	//DebugVoxelMesh.Indices.push_back(0);
+	//DebugVoxelMesh.Indices.push_back(7);
+
+	//DebugVoxelMesh.Indices.push_back(0);
+	//DebugVoxelMesh.Indices.push_back(4);
+	//DebugVoxelMesh.Indices.push_back(7);
+
+	//DebugVoxelMesh.Indices.push_back(1);
+	//DebugVoxelMesh.Indices.push_back(2);
+	//DebugVoxelMesh.Indices.push_back(5);
+
+	//DebugVoxelMesh.Indices.push_back(2);
+	//DebugVoxelMesh.Indices.push_back(6);
+	//DebugVoxelMesh.Indices.push_back(5);
 
 }
 

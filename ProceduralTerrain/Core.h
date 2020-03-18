@@ -25,12 +25,16 @@ class Core
 
 	Scene* SelectedScene = nullptr;
 
+	Shader* TerrainVoxelShader = nullptr;
+	
 	ID3D11VertexShader* TerrainVS = nullptr;
-	ID3D11VertexShader* TerrainRenderVS = nullptr; // VS로 렌더가 안된다면 GS에서 투영을 해볼것
+	ID3D11VertexShader* TerrainRenderVS = nullptr;
 
 	ID3D11PixelShader* TerrainPS = nullptr;
 	ID3D11GeometryShader* TerrainGS = nullptr;
 	ID3D11InputLayout* TerrainIL = nullptr;
+
+	
 
 	Terrain* MainTerrain = nullptr;
 
@@ -82,6 +86,7 @@ public:
 
 	HRESULT AllocTerrainMeshBuffer(Terrain** AllocTerrain);
 	HRESULT AllocTerrainInstanceBuffer(Terrain** AllocTerrain);
+	HRESULT AllocTerrainVoxelInstanceDebugBuffer(Terrain** AllocTerrain);
 
 	HRESULT AllocConstantBuffer(Model* AllocModel);
 	HRESULT AllocMeshBuffer(Model* AllocModel);

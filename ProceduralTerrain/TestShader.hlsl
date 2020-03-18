@@ -9,9 +9,10 @@ cbuffer Matrices : register(b0)
 
 struct Voxel
 {
-    float3 WorldPosition : POSITION;
+    float4 Position : POSITION;
     float Density : TEXCOORD0;
-    uint Index : TEXCOORD1;
+    
+    float3 WorldPosition : TEXCOORD1;
 };
 
 struct Vertex
@@ -23,7 +24,6 @@ struct Vertex
     float3 WorldPosition : TEXCOORD1;
     row_major float2x4 Densities : TEXCOORD2;
     
-    row_major float2x4 VoxelPositions : TEXCOORD3;
     uint InstanceID : SV_InstanceID;
 };
 
@@ -34,19 +34,6 @@ struct Pixel
     float2 UV : TEXCOORD1;
     row_major float2x4 Density : DENSITY0;
     uint InstanceID : SV_InstanceID;
-    
-};
-
-const float3 Directions[8] =
-{
-    { -1.0f, 1.0f, 1.0f }, // -++
-    { 1.0f, 1.0f, 1.0f }, // +++
-    { 1.0f, 1.0f, -1.0f }, // ++-
-    { -1.0f, 1.0f, -1.0f }, // -+-
-    { -1.0f, -1.0f, 1.0f }, // --+
-    { 1.0f, -1.0f, 1.0f }, // +-+
-    { 1.0f, -1.0f, -1.0f }, // +--
-    { -1.0f, -1.0f, -1.0f }, // ---
     
 };
 
@@ -71,7 +58,7 @@ Pixel VS(Vertex Input)
     
     Output.Density = Input.Densities;
     
-    Output.InstanceID = Input.InstanceID;
+   // Output.InstanceID = Input.InstanceID;
     
     return Output;
 
@@ -79,17 +66,25 @@ Pixel VS(Vertex Input)
 
 Pixel VoxelVS(Voxel Input)
 {
-    Pixel Output = (Vertex) 0;
+    Pixel Output = (Pixel) 0;
     
     float4 WorldPos;
+    float4 CornerPos;
     
-    WorldPos = float4(Input.WorldPosition + Directions[Input.Index], 1.0f);
+    Input.Position.w = 1.0f;
+    
+    WorldPos = float4(Input.WorldPosition, 1.0f);
+    CornerPos = Input.Position;
+    
+    WorldPos = float4(WorldPos.xyz + CornerPos.xyz, 1.0f);
     
     Output.Projected = mul(WorldPos, World);
     Output.Projected = mul(Output.Projected, View);
     Output.Projected = mul(Output.Projected, Projection);
     
-    Output.Density = Input.Density;
+    
+   // Output.InstanceID = Input.InstanceID;
+    //Output.Density = Input.Density;
     
     return Output;
 
@@ -102,34 +97,34 @@ float4 PS(Pixel Input) : SV_Target0
     
     FinalColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
     
-    switch (Input.InstanceID)
-    {
-        case 0:
-            Density = Input.Density[0][0];
-            break;
-        case 1:
-            Density = Input.Density[0][1];
-            break;
-        case 2:
-            Density = Input.Density[0][2];
-            break;
-        case 3:
-            Density = Input.Density[0][3];
-            break;
+    //switch (Input.InstanceID)
+    //{
+    //    case 0:
+    //        Density = Input.Density[0][0];
+    //        break;
+    //    case 1:
+    //        Density = Input.Density[0][1];
+    //        break;
+    //    case 2:
+    //        Density = Input.Density[0][2];
+    //        break;
+    //    case 3:
+    //        Density = Input.Density[0][3];
+    //        break;
         
-        case 4:
-            Density = Input.Density[1][0];
-            break;
-        case 5:
-            Density = Input.Density[1][1];
-            break;
-        case 6:
-            Density = Input.Density[1][2];
-            break;
-        case 7:
-            Density = Input.Density[1][3];
-            break;
-    }
+    //    case 4:
+    //        Density = Input.Density[1][0];
+    //        break;
+    //    case 5:
+    //        Density = Input.Density[1][1];
+    //        break;
+    //    case 6:
+    //        Density = Input.Density[1][2];
+    //        break;
+    //    case 7:
+    //        Density = Input.Density[1][3];
+    //        break;
+    //}
     
-    return float4(Density.xxx, 1.0f);
+    return FinalColor;
 }

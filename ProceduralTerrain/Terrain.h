@@ -6,6 +6,12 @@ struct TerrainMesh
 	vector<Index> Indices;
 };
 
+struct VoxelMesh
+{
+	vector<VoxelVertex> Vertices;
+	vector<Index> Indices;
+};
+
 #define MAX_INSTANCE_SIZE 64
 #define MAX_INSTANCE_COUNT MAX_INSTANCE_SIZE*MAX_INSTANCE_SIZE*MAX_INSTANCE_SIZE
 
@@ -40,7 +46,7 @@ public:
 	ID3D11Buffer* DebugInstanceBuffer = nullptr;
 
 	TerrainMesh DebugMesh;
-	TerrainMesh DebugVoxelMesh;
+	VoxelMesh DebugVoxelMesh;
 #endif
 
 	TerrainInstances TerrainInst;

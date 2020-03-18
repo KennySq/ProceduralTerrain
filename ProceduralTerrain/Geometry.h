@@ -23,6 +23,12 @@ struct Vertex
 	XMFLOAT2 UV;
 };
 
+struct VoxelVertex
+{
+	XMFLOAT3 Position;
+	float Density;
+};
+
 struct TerrainInstanceData
 {
 	XMFLOAT3 WorldPosition; // [64]{3}
