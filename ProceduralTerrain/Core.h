@@ -16,6 +16,8 @@ class Core
 	IDXGISwapChain* SwapChain = nullptr;
 
 	vector<Model*> ModelCache;
+	
+
 
 	HWND WindowHandle;
 	HINSTANCE HandleInstance;
@@ -34,7 +36,9 @@ class Core
 	ID3D11GeometryShader* TerrainGS = nullptr;
 	ID3D11InputLayout* TerrainIL = nullptr;
 
-	
+	ID3D11VertexShader* QuadVS = nullptr;
+	ID3D11GeometryShader* QuadGS = nullptr;
+	ID3D11PixelShader* QuadPS = nullptr;
 
 	Terrain* MainTerrain = nullptr;
 
@@ -56,6 +60,8 @@ private:
 	void CachePrimitives();
 
 public:
+	CustomModel<VolumeSliceVertex>* ScreenQuad = nullptr;
+
 	Core(HWND InWindowHandle, HINSTANCE InHandleInstance, UINT InWidth, UINT InHeight) : 
 		WindowHandle(InWindowHandle), HandleInstance(InHandleInstance), Width(InWidth), Height(InHeight) { }
 	~Core();
@@ -87,6 +93,8 @@ public:
 	HRESULT AllocTerrainMeshBuffer(Terrain** AllocTerrain);
 	HRESULT AllocTerrainInstanceBuffer(Terrain** AllocTerrain);
 	HRESULT AllocTerrainVoxelInstanceDebugBuffer(Terrain** AllocTerrain);
+
+	HRESULT AllocVolumeSliceBuffer(CustomModel<VolumeSliceVertex>* Quad);
 
 	HRESULT AllocConstantBuffer(Model* AllocModel);
 	HRESULT AllocMeshBuffer(Model* AllocModel);

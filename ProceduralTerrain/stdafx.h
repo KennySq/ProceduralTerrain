@@ -53,6 +53,7 @@
 #include"HLSLCompiler.h"
 
 #include"BufferManager.h"
+#include"TextureManager.h"
 
 #include"Terrain.h"
 

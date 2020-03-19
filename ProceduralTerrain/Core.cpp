@@ -48,7 +48,7 @@ HRESULT Core::PostInitialize()
 HRESULT Core::Intialize()
 {
 	Resize();
-	
+
 	AllocStreamBuffer StreamBuffer;
 
 	Material* SimpleMat = new Material();
@@ -61,33 +61,19 @@ HRESULT Core::Intialize()
 	
 	CachePrimitives();
 	
-	Terrain::MakeTerrain(&MainTerrain, 16);
+	Terrain::MakeTerrain(&MainTerrain, 32);
 	AllocTerrainMeshBuffer(&MainTerrain);
 	AllocTerrainInstanceBuffer(&MainTerrain);
 	AllocTerrainVoxelInstanceDebugBuffer(&MainTerrain);
 
-	//AllocMeshBuffer(ModelCache[1]);
-	//AllocConstantBuffer(ModelCache[1]);
-	//StreamBuffer(Device, &ModelCache[1]->ModelGeoBuffer);
+	CreateTexture3D(Device, &MainTerrain->DensityTexture);
+
 
 	GenerateMaterial(SimpleMat, "TestShader.hlsl");
 
 	CompileVoxelVertexShader(Device, "TestShader.hlsl", "VoxelVS", TerrainVoxelShader);
 
 	MainTerrain->Mat = SimpleMat;
-	
-	//CompileVertexShader(Device, "TerrainRenderVS.hlsl", "TerrainRenderVS", &TerrainRenderVS, &TerrainIL);
-	//CompileVertexShader(Device, "TerrainVS.hlsl","TerrainVS", &TerrainVS, &TerrainIL);
-	//CompileGeometryShaderForStreamOutput(Device, "TerrainGS.hlsl", "TerrainGS", &TerrainGS);
-	//CompilePixelShader(Device, "TerrainPS.hlsl", "TerrainPS", &TerrainPS);
-
-	//SimpleTerrain->RenderModel = ModelCache[1];
-
-	//SelectedScene->AddInstance(*SimpleTerrain);
-
-	//ModelCache[0]->ModelMaterial = SimpleMat;
-	//SimpleCube->RenderModel = ModelCache[0];
-	//SelectedScene->AddInstance(*SimpleCube);
 
 	return S_OK;
 }
@@ -232,6 +218,36 @@ HRESULT Core::AllocTerrainVoxelInstanceDebugBuffer(Terrain** AllocTerrain)
 	Result = Device->CreateBuffer(&Desc, &SubResource, &AllocTerrain[0]->DebugVoxelIB);
 	if (FAILED(Result))
 		return Result;
+
+	return S_OK;
+}
+
+HRESULT Core::AllocVolumeSliceBuffer(CustomModel<VolumeSliceVertex>* Quad)
+{
+	HRESULT Result;
+
+	D3D11_BUFFER_DESC Desc{};
+	D3D11_SUBRESOURCE_DATA SubData{};
+
+	Desc.ByteWidth = sizeof(VolumeSliceVertex) * Quad->QuadMesh->Vertices.size();
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+
+	SubData.pSysMem = Quad->QuadMesh->Vertices.data();
+
+	Result = Device->CreateBuffer(&Desc, &SubData, &Quad->ModelMeshBuffer->VertexBuffer);
+	assert(Result == S_OK && "Failed to create quad vertex buffer");
+
+	Desc = {};
+
+	Desc.ByteWidth = sizeof(Index) * Quad->QuadMesh->Indices.size();
+	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+
+	SubData.pSysMem = Quad->QuadMesh->Indices.data();
+
+	Result = Device->CreateBuffer(&Desc, &SubData, &Quad->ModelMeshBuffer->IndexBuffer);
+	assert(Result == S_OK && "Failed to create quad index buffer");
 
 	return S_OK;
 }
@@ -668,10 +684,12 @@ void Core::CachePrimitives()
 {
 	Model* Cube = new Model();
 	Model* Terrain = new Model();
-
+	CustomModel<VolumeSliceVertex>* ScreenQuadModel = new CustomModel<VolumeSliceVertex>();
 	CreateCube(&Cube);
 	CreateTerrain(&Terrain);
+	CreateQuad(&ScreenQuadModel);
+
 	ModelCache.push_back(Cube);
 	ModelCache.push_back(Terrain);
-
+	ScreenQuad = ScreenQuadModel;
 }

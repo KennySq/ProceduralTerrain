@@ -23,10 +23,16 @@ struct Vertex
 	XMFLOAT2 UV;
 };
 
+struct VolumeSliceVertex
+{
+	XMFLOAT3 Position;
+	XMFLOAT2 UV;
+};
+
 struct VoxelVertex
 {
 	XMFLOAT3 Position;
-	float Density;
+	XMINT4 Idx;
 };
 
 struct TerrainInstanceData
@@ -59,6 +65,14 @@ struct Quad
 struct Mesh
 {
 	vector<Vertex> Vertices;
+	vector<Index> Indices;
+
+};
+
+template<class _VertTy>
+struct CustomMesh
+{
+	vector<_VertTy> Vertices;
 	vector<Index> Indices;
 
 };
@@ -98,7 +112,16 @@ struct Model
 	GeometryBuffer* ModelGeoBuffer = nullptr;
 };
 
+template<class _VertTy>
+struct CustomModel
+{
+	CustomMesh<_VertTy>* QuadMesh = nullptr;
+	MeshBuffer* ModelMeshBuffer = nullptr;
+	GeometryBuffer* ModelGeoBuffer = nullptr;
+};
+
 void CreateCube(Model** OutModel);
 void CreateTerrain(Model** OutModel);
+void CreateQuad(CustomModel<VolumeSliceVertex>** QuadModel);
 
 #endif

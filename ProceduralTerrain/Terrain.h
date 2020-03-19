@@ -23,6 +23,7 @@ class Terrain
 	ID3D11Buffer* MainIB = nullptr;
 	TerrainMesh MainMesh;
 
+
 	void SubDivideCells();
 	void InitializeCells();
 
@@ -49,6 +50,9 @@ public:
 	VoxelMesh DebugVoxelMesh;
 #endif
 
+	ID3D11Texture3D* DensityTexture = nullptr;
+
+
 	TerrainInstances TerrainInst;
 	//XMFLOAT3* WorldPosition = nullptr;
 
@@ -57,3 +61,4 @@ public:
 	static void MakeTerrain(Terrain** pOutTerrain, UINT Size);
 	void InitializeDebugCells();
 };
+
