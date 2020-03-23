@@ -2,20 +2,16 @@
 
 struct Pixel
 {
-    // Per Vertex
+    // Per Vertex   
     float4 Position : SV_POSITION;
-    float2 UV : TEXCOORD0;
+    float4 WorldSpace : TEXCOORD0;
+    float3 ChunkPosition : TEXCOORD1;
+   
 };
 
-struct VolumeInstance
+float4 QuadPS(Pixel Input) : SV_TARGET0
 {
-    float Density : SV_Target0;
-};
-
-VolumeInstance QuadPS(Pixel Input)
-{
-    VolumeInstance Output = (VolumeInstance)0;
-    Output.Density = 1.0f;
+    float Density = 1.0f;
     
-    return Output;
+    return Density;
 }

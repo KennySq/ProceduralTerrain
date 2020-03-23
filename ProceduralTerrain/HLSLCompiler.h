@@ -156,15 +156,31 @@ static HRESULT CompileVertexShader(ID3D11Device* Device, string Path, string Ent
 	D3D11_INPUT_ELEMENT_DESC InputElements[] =
 	{
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R16G16_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
+
+	/*
+	    LPCSTR SemanticName;
+    UINT SemanticIndex;
+    DXGI_FORMAT Format;
+    UINT InputSlot;
+    UINT AlignedByteOffset;
+    D3D11_INPUT_CLASSIFICATION InputSlotClass;
+    UINT InstanceDataStepRate;
+	*/
 
 #ifdef _DEBUG
 	Flag |= D3DCOMPILE_DEBUG;
 #endif
 
-	Result = D3DCompileFromFile(A2W(Path.c_str()), nullptr, nullptr, Entry.c_str(), "vs_5_0", 0, Flag, &VBlob, &ErrBlob);
+	//ID3DInclude* Include;
+	//LPCVOID pOutInclude;
+	//UINT pBytes;
+	//
+	//Result = Include->Open(D3D_INCLUDE_LOCAL, "master.hlsli", nullptr, &pOutInclude, &pBytes);
+	//assert(Result == S_OK || Result == S_FALSE && "Failed to open header.");
+
+	Result = D3DCompileFromFile(A2W(Path.c_str()), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, Entry.c_str(), "vs_5_0", 0, Flag, &VBlob, &ErrBlob);
 
 	if (FAILED(Result))
 	{
@@ -281,6 +297,46 @@ static HRESULT CompileGeometryShaderForStreamOutput(ID3D11Device* Device, string
 	UINT Stride[1] = { sizeof(Vertex) };
 	
 	Result = D3DCompileFromFile(A2W(Path.c_str()), nullptr, nullptr, Entry.c_str(), "gs_5_0", 0, CompileFlag, &GBlob, &ErrBlob);
+	assert(Result == S_OK  || Result == S_FALSE&& "Failed to compile GS");
+
+	Result = Device->CreateGeometryShaderWithStreamOutput(GBlob->GetBufferPointer(), GBlob->GetBufferSize(), Entries, _countof(Entries), Stride, _countof(Stride), 0, nullptr, pOutGS);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create GS with SO");
+
+
+
+	return S_OK;
+	
+}
+
+template<class _VertTy>
+static HRESULT CompileGeometryShaderForStreamOutput(ID3D11Device* Device, string Path, string Entry, ID3D11GeometryShader** pOutGS)
+{
+	USES_CONVERSION;
+
+	HRESULT Result;
+
+	UINT CompileFlag = D3DCOMPILE_ENABLE_STRICTNESS;
+	ID3DBlob* GBlob = nullptr, * ErrBlob = nullptr;
+
+#ifdef _DEBUG
+	CompileFlag = D3DCOMPILE_DEBUG;
+#endif
+
+	D3D11_SO_DECLARATION_ENTRY Entries[] =
+	{
+		{0, "SV_POSITION", 0, 0, 3, 0},										
+		{0, "TEXCOORD", 0, 0, 2, 0},												
+		//		UINT Stream;
+		//LPCSTR SemanticName;							
+		//UINT SemanticIndex;							
+		//BYTE StartComponent;
+		//BYTE ComponentCount;
+		//BYTE OutputSlot;
+	};
+
+	UINT Stride[1] = { sizeof(_VertTy) };
+
+	Result = D3DCompileFromFile(A2W(Path.c_str()), nullptr, nullptr, Entry.c_str(), "gs_5_0", 0, CompileFlag, &GBlob, &ErrBlob);
 	assert(Result == S_OK && "Failed to compile GS");
 
 	Result = Device->CreateGeometryShaderWithStreamOutput(GBlob->GetBufferPointer(), GBlob->GetBufferSize(), Entries, _countof(Entries), Stride, _countof(Stride), 0, nullptr, pOutGS);
@@ -289,7 +345,7 @@ static HRESULT CompileGeometryShaderForStreamOutput(ID3D11Device* Device, string
 
 
 	return S_OK;
-	
+
 }
 
 #endif

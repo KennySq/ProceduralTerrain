@@ -48,6 +48,7 @@ HRESULT Core::PostInitialize()
 HRESULT Core::Intialize()
 {
 	Resize();
+	InitRasterrizerStates();
 
 	AllocStreamBuffer StreamBuffer;
 
@@ -66,14 +67,26 @@ HRESULT Core::Intialize()
 	AllocTerrainInstanceBuffer(&MainTerrain);
 	AllocTerrainVoxelInstanceDebugBuffer(&MainTerrain);
 
-	CreateTexture3D(Device, &MainTerrain->DensityTexture);
+	CreateTexture3D(Device, &MainTerrain->VolumeTexture->Tex);
+	CreateRenderTargetView3D(Device, MainTerrain->VolumeTexture->Tex, &MainTerrain->VolumeTexture->RTV);
+	CreateShaderResourceView3D(Device, MainTerrain->VolumeTexture->Tex, &MainTerrain->VolumeTexture->SRV);
+	
+	CreateRenderTargetView3D(Device, MainTerrain->VertexIDVolume->Tex, &MainTerrain->VertexIDVolume->RTV);
+	CreateShaderResourceView3D(Device, MainTerrain->VertexIDVolume->Tex, &MainTerrain->VertexIDVolume->SRV);
 
+	AllocVolumeSliceBuffer(&ScreenQuad);
+	AllocVolumeSliceStreamBuffer(&MainTerrain);
 
 	GenerateMaterial(SimpleMat, "TestShader.hlsl");
 
 	CompileVoxelVertexShader(Device, "TestShader.hlsl", "VoxelVS", TerrainVoxelShader);
 
+	CompileVertexShader(Device, "VolumeTextureVS.hlsl", "QuadVS", &QuadVS, &QuadIL);
+	CompilePixelShader(Device, "VolumeTexturePS.hlsl", "QuadPS", &QuadPS);
+	CompileGeometryShaderForStreamOutput<VolumeSliceVertex>(Device, "VolumeTextureGS.hlsl", "QuadGS", &QuadGS);
 	MainTerrain->Mat = SimpleMat;
+
+	DrawVolume();
 
 	return S_OK;
 }
@@ -222,32 +235,54 @@ HRESULT Core::AllocTerrainVoxelInstanceDebugBuffer(Terrain** AllocTerrain)
 	return S_OK;
 }
 
-HRESULT Core::AllocVolumeSliceBuffer(CustomModel<VolumeSliceVertex>* Quad)
+HRESULT Core::AllocVolumeSliceBuffer(CustomModel<VolumeSliceVertex>** Quad)
 {
 	HRESULT Result;
+
+	Quad[0]->ModelMeshBuffer = new MeshBuffer();
 
 	D3D11_BUFFER_DESC Desc{};
 	D3D11_SUBRESOURCE_DATA SubData{};
 
-	Desc.ByteWidth = sizeof(VolumeSliceVertex) * Quad->QuadMesh->Vertices.size();
+	Desc.ByteWidth = sizeof(VolumeSliceVertex) * Quad[0]->QuadMesh->Vertices.size();
 	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	Desc.Usage = D3D11_USAGE_DEFAULT;
 
-	SubData.pSysMem = Quad->QuadMesh->Vertices.data();
+	SubData.pSysMem = Quad[0]->QuadMesh->Vertices.data();
 
-	Result = Device->CreateBuffer(&Desc, &SubData, &Quad->ModelMeshBuffer->VertexBuffer);
-	assert(Result == S_OK && "Failed to create quad vertex buffer");
+	Result = Device->CreateBuffer(&Desc, &SubData, &Quad[0]->ModelMeshBuffer->VertexBuffer);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create quad vertex buffer");
 
 	Desc = {};
 
-	Desc.ByteWidth = sizeof(Index) * Quad->QuadMesh->Indices.size();
+	Desc.ByteWidth = sizeof(Index) * Quad[0]->QuadMesh->Indices.size();
 	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	Desc.Usage = D3D11_USAGE_DEFAULT;
 
-	SubData.pSysMem = Quad->QuadMesh->Indices.data();
+	SubData.pSysMem = Quad[0]->QuadMesh->Indices.data();
 
-	Result = Device->CreateBuffer(&Desc, &SubData, &Quad->ModelMeshBuffer->IndexBuffer);
-	assert(Result == S_OK && "Failed to create quad index buffer");
+	Result = Device->CreateBuffer(&Desc, &SubData, &Quad[0]->ModelMeshBuffer->IndexBuffer);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create quad index buffer");
+
+	return S_OK;
+}
+
+HRESULT Core::AllocVolumeSliceStreamBuffer(Terrain** AllocTerrain)
+{
+	HRESULT Result;
+
+	D3D11_BUFFER_DESC BufferDesc{};
+
+	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_STREAM_OUTPUT;
+	BufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	BufferDesc.ByteWidth = sizeof(VolumeSliceVertex) * 132;
+	
+	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->VolumeStreamBuffer);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create volume stream buffer.");
+
+	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->VolumeStreamBackBuffer);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create volume stream back buffer.");
+
 
 	return S_OK;
 }
@@ -327,6 +362,21 @@ HRESULT Core::GenerateMaterial(Material*& OutMaterial, string Path)
 
 	CacheMaterial(*OutMaterial, Path);
 
+	return S_OK;
+}
+
+HRESULT Core::AllocCaseStreamBuffer()
+{
+	HRESULT Result;
+	D3D11_BUFFER_DESC Desc{};
+
+	Desc.ByteWidth = (sizeof(UINT) * 3) * MainTerrain[0].Capacity;
+	Desc.BindFlags = D3D11_BIND_STREAM_OUTPUT;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+
+	Result = Device->CreateBuffer(&Desc, nullptr, &MainTerrain[0].CaseStreamBuffer);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create case stream buffer.");
+	
 	return S_OK;
 }
 
@@ -445,7 +495,11 @@ void Core::DrawTerrainDebug(Terrain* DrawTerrain)
 	
 	static Matrices ConstBuf{};
 	static ID3D11Buffer* Buffer[] = {DrawTerrain->DebugVoxelVB, DrawTerrain->DebugInstanceBuffer};
-	
+	static ID3D11GeometryShader* NullGS = nullptr;
+
+	Context->GSSetShader(NullGS, nullptr, 0);
+
+
 	ConstBuf.World = XMMatrixIdentity();
 	ConstBuf.View = XMMatrixTranspose(SelectedScene->GetMainCamera()->GetView());
 	ConstBuf.Projection = XMMatrixTranspose(SelectedScene->GetMainCamera()->GetProjection());
@@ -464,6 +518,48 @@ void Core::DrawTerrainDebug(Terrain* DrawTerrain)
 	Context->DrawInstanced(8, DrawTerrain->Capacity, 0, 0);
 	
 
+}
+
+void Core::DrawVolume()
+{
+	static UINT Stride = sizeof(VolumeSliceVertex);
+	static UINT Offset = 0;
+
+	static ID3D11Buffer* NullBuffer = nullptr;
+	static ID3D11VertexShader* NullVS = nullptr;
+	static ID3D11GeometryShader* NullGS = nullptr;
+	static ID3D11PixelShader* NullPS = nullptr;
+	static ID3D11RenderTargetView* NullRTV = nullptr;
+
+	Context->IASetVertexBuffers(0, 1, &NullBuffer, &Stride, &Offset);
+	Context->OMSetRenderTargets(1, &NullRTV, nullptr);
+
+	Context->ClearRenderTargetView(MainTerrain->VolumeTexture->RTV, Colors::Black);
+
+	Context->IASetVertexBuffers(0, 1, &ScreenQuad->ModelMeshBuffer->VertexBuffer, &Stride, &Offset);
+	Context->IASetIndexBuffer(ScreenQuad->ModelMeshBuffer->IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	Context->IASetInputLayout(QuadIL);
+	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	Context->VSSetShader(QuadVS, nullptr, 0);
+	Context->SOSetTargets(1, &MainTerrain->VolumeStreamBuffer, &Offset);
+	Context->GSSetShader(QuadGS, nullptr, 0);
+	Context->PSSetShader(QuadPS, nullptr, 0);
+
+	Context->RSSetState(RSNoDepthCull);
+	Context->OMSetRenderTargets(1, &MainTerrain->VolumeTexture->RTV, nullptr);
+
+	Context->DrawIndexedInstanced(6, 33, 0, 0, 0);
+
+	SwapChain->Present(0, 0);
+
+}
+
+void Core::CreatePolygonCase()
+{
+
+
+	return;
 }
 
 HRESULT Core::Resize()
@@ -692,4 +788,27 @@ void Core::CachePrimitives()
 	ModelCache.push_back(Cube);
 	ModelCache.push_back(Terrain);
 	ScreenQuad = ScreenQuadModel;
+}
+
+void Core::InitRasterrizerStates()
+{
+	HRESULT Result;
+	D3D11_RASTERIZER_DESC RSDesc{};
+
+	RSDesc.DepthClipEnable = false;
+	RSDesc.FillMode = D3D11_FILL_SOLID;
+	RSDesc.AntialiasedLineEnable = false;
+	RSDesc.CullMode = D3D11_CULL_NONE;
+	RSDesc.FrontCounterClockwise = false;
+	RSDesc.MultisampleEnable = false;
+	RSDesc.ScissorEnable = false;
+	
+	Result = Device->CreateRasterizerState(&RSDesc, &RSNoDepthCull);
+	assert(Result == S_OK || Result == S_FALSE);
+
+	RSDesc.DepthClipEnable = true;
+
+	Result = Device->CreateRasterizerState(&RSDesc, &RSDefault);
+	assert(Result == S_OK || Result == S_FALSE);
+
 }

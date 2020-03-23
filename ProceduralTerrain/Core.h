@@ -37,8 +37,18 @@ class Core
 	ID3D11InputLayout* TerrainIL = nullptr;
 
 	ID3D11VertexShader* QuadVS = nullptr;
+	ID3D11InputLayout* QuadIL = nullptr;
 	ID3D11GeometryShader* QuadGS = nullptr;
 	ID3D11PixelShader* QuadPS = nullptr;
+
+	ID3D11VertexShader* NonEmptyCellListVS = nullptr;
+	ID3D11GeometryShader* NonEmptyCellListGS = nullptr;
+
+	ID3D11VertexShader* VertexEdgeListVS = nullptr;
+	ID3D11GeometryShader* VertexEdgeListGS = nullptr;
+
+	ID3D11RasterizerState* RSDefault = nullptr;
+	ID3D11RasterizerState* RSNoDepthCull = nullptr;
 
 	Terrain* MainTerrain = nullptr;
 
@@ -59,6 +69,7 @@ private:
 
 	void CachePrimitives();
 
+	void InitRasterrizerStates();
 public:
 	CustomModel<VolumeSliceVertex>* ScreenQuad = nullptr;
 
@@ -94,11 +105,14 @@ public:
 	HRESULT AllocTerrainInstanceBuffer(Terrain** AllocTerrain);
 	HRESULT AllocTerrainVoxelInstanceDebugBuffer(Terrain** AllocTerrain);
 
-	HRESULT AllocVolumeSliceBuffer(CustomModel<VolumeSliceVertex>* Quad);
+	HRESULT AllocVolumeSliceBuffer(CustomModel<VolumeSliceVertex>** Quad);
+	HRESULT AllocVolumeSliceStreamBuffer(Terrain** AllocTerrain);
 
 	HRESULT AllocConstantBuffer(Model* AllocModel);
 	HRESULT AllocMeshBuffer(Model* AllocModel);
 	HRESULT GenerateMaterial(Material*& OutMaterial, string Path);
+
+	HRESULT AllocCaseStreamBuffer();
 
 	void BindBuffer(Instance& BindInstance);
 	void DrawInstance(Instance& DrawInstance);
@@ -108,6 +122,9 @@ public:
 #ifdef _DEBUG
 	void DrawTerrainDebug(Terrain* DrawTerrain);
 #endif
+
+	void DrawVolume();
+	void CreatePolygonCase();
 
 	void DrawInstanceInstanced(Instance& DrawObject, UINT InstanceCount);
 

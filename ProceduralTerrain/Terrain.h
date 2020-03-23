@@ -46,17 +46,22 @@ public:
 
 	ID3D11Buffer* DebugInstanceBuffer = nullptr;
 
+
 	TerrainMesh DebugMesh;
 	VoxelMesh DebugVoxelMesh;
 #endif
 
-	ID3D11Texture3D* DensityTexture = nullptr;
+	ID3D11Buffer* VolumeStreamBuffer = nullptr; // D3D11_BIND_VERTEX_BUFFER
+	ID3D11Buffer* VolumeStreamBackBuffer = nullptr; // D3D11_BIND_VERTEX_BUFFER
 
+
+	ID3D11Buffer* CaseStreamBuffer = nullptr;
+
+	RenderTarget3D* VolumeTexture = nullptr;
+
+	RenderTarget3D* VertexIDVolume = nullptr;
 
 	TerrainInstances TerrainInst;
-	//XMFLOAT3* WorldPosition = nullptr;
-
-	//TerrainMesh* const GetTerrainDebugMesh() { return &DebugMesh; }
 
 	static void MakeTerrain(Terrain** pOutTerrain, UINT Size);
 	void InitializeDebugCells();

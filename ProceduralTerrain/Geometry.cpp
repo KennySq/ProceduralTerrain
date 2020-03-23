@@ -90,7 +90,7 @@ void CreateTerrain(Model** OutModel)
 
 void CreateQuad(CustomModel<VolumeSliceVertex>** QuadModel)
 {
-	QuadModel[0] = new CustomModel<VolumeSliceVertex>();
+	QuadModel[0]->QuadMesh = new CustomMesh<VolumeSliceVertex>();
 
 	VolumeSliceVertex V[] =
 	{
@@ -110,6 +110,13 @@ void CreateQuad(CustomModel<VolumeSliceVertex>** QuadModel)
 	QuadModel[0]->QuadMesh->Vertices.push_back(V[1]);
 	QuadModel[0]->QuadMesh->Vertices.push_back(V[2]);
 	QuadModel[0]->QuadMesh->Vertices.push_back(V[3]);
+
+	QuadModel[0]->QuadMesh->Indices.push_back(I[2]);
+	QuadModel[0]->QuadMesh->Indices.push_back(I[1]);
+	QuadModel[0]->QuadMesh->Indices.push_back(I[0]);
+	QuadModel[0]->QuadMesh->Indices.push_back(I[5]);
+	QuadModel[0]->QuadMesh->Indices.push_back(I[4]);
+	QuadModel[0]->QuadMesh->Indices.push_back(I[3]);
 
 	return;
 }

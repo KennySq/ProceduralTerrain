@@ -21,6 +21,18 @@ struct Texture3D
 {
 	ID3D11Texture3D* Tex = nullptr;
 	ID3D11ShaderResourceView* SRV = nullptr;
+
+	//RenderTarget3D* ToRenderTarget() { return (RenderTarget3D*)this; }
+};
+
+struct RenderTarget3D : public Texture3D
+{
+	ID3D11RenderTargetView* RTV = nullptr;
+};
+
+struct DepthStencil3D : public Texture3D
+{
+	ID3D11DepthStencilView* DSV = nullptr;
 };
 
 struct RenderTarget2D : public Texture2D
@@ -32,6 +44,7 @@ struct DepthStencil2D : public Texture2D
 {
 	ID3D11DepthStencilView* DSV = nullptr;
 };
+
 
 
 
