@@ -71,11 +71,13 @@ HRESULT Core::Intialize()
 	CreateRenderTargetView3D(Device, MainTerrain->VolumeTexture->Tex, &MainTerrain->VolumeTexture->RTV);
 	CreateShaderResourceView3D(Device, MainTerrain->VolumeTexture->Tex, &MainTerrain->VolumeTexture->SRV);
 	
+	CreateTexture3D(Device, &MainTerrain->VertexIDVolume->Tex, 32, DXGI_FORMAT_R32_UINT);
 	CreateRenderTargetView3D(Device, MainTerrain->VertexIDVolume->Tex, &MainTerrain->VertexIDVolume->RTV);
 	CreateShaderResourceView3D(Device, MainTerrain->VertexIDVolume->Tex, &MainTerrain->VertexIDVolume->SRV);
 
 	AllocVolumeSliceBuffer(&ScreenQuad);
 	AllocVolumeSliceStreamBuffer(&MainTerrain);
+	AllocTerrainStreamBuffers(&MainTerrain);
 
 	GenerateMaterial(SimpleMat, "TestShader.hlsl");
 
@@ -84,10 +86,51 @@ HRESULT Core::Intialize()
 	CompileVertexShader(Device, "VolumeTextureVS.hlsl", "QuadVS", &QuadVS, &QuadIL);
 	CompilePixelShader(Device, "VolumeTexturePS.hlsl", "QuadPS", &QuadPS);
 	CompileGeometryShaderForStreamOutput<VolumeSliceVertex>(Device, "VolumeTextureGS.hlsl", "QuadGS", &QuadGS);
+	
+	D3D11_INPUT_ELEMENT_DESC IE1[] = { 
+		{"TEXCOORD", 2, DXGI_FORMAT_R32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+	D3D11_INPUT_ELEMENT_DESC IE2[] = {
+		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"POSITION", 1, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+
+	MainTerrain->VertexListInputElement[0] = IE1[0];
+	MainTerrain->SplatVertexIDInputElement[0] = IE1[0];
+	MainTerrain->GenerateVerticesInputElements[0] = IE1[0];
+	MainTerrain->GenerateIndicesInputElements[0] = IE1[0];
+	memcpy(MainTerrain->NoneEmptyCellsInputElement, IE2, sizeof(IE2));
+
+	CompileVertexShader(Device, "NoneEmptyCellsVS.hlsl", "NoneEmptyCellsVS", &MainTerrain->NoneEmptyCellsVS, &MainTerrain->NoneEmptyCellsIL, MainTerrain->NoneEmptyCellsInputElement, 1);
+	CompileVertexShader(Device, "VertexListVS.hlsl", "VertexListVS", &MainTerrain->VertexListVS, &MainTerrain->VertexListIL, MainTerrain->VertexListInputElement, 1);
+	CompileVertexShader(Device, "SplatVertexIDVS.hlsl", "SplatVertexIDVS", &MainTerrain->SplatVertexIDVS, &MainTerrain->SplatVertexIDIL, MainTerrain->SplatVertexIDInputElement, 1);
+	CompileVertexShader(Device, "GenerateVerticesVS.hlsl", "GenerateVerticesVS", &MainTerrain->GenerateVerticesVS, &MainTerrain->GenerateVerticesIL, MainTerrain->GenerateVerticesInputElements, 1);
+	CompileVertexShader(Device, "GenerateIndicesVS.hlsl", "GenerateIndicesVS", &MainTerrain->GenerateIndicesVS, &MainTerrain->GenerateIndicesIL, MainTerrain->GenerateIndicesInputElements, 1);
+	
+	D3D11_SO_DECLARATION_ENTRY NoneEmptyCellsEntries[] = { {0, "TEXCOORD", 2, 0, 1, 0 } };
+	D3D11_SO_DECLARATION_ENTRY VertexListEntries[] = { {0, "TEXCOORD", 2, 0, 1, 0 } };
+	D3D11_SO_DECLARATION_ENTRY SplatVertexIDEntries[] =	{ {0, "SV_POSITION", 0, 0, 4, 0 }, {0, "TEXCOORD", 2, 0, 1, 0 } };
+	D3D11_SO_DECLARATION_ENTRY GenerateVerticesEntries[] =	{ {0, "SV_POSITION", 0, 0, 4, 0 }, {0, "TEXCOORD", 0, 0, 4, 0 }	};
+	D3D11_SO_DECLARATION_ENTRY GenerateIndicesEntries[] = { {0, "TEXCOORD", 2, 0, 1, 0 } };
+
+	UINT Stride1 = sizeof(PolygonCaseCode);
+	UINT Stride2 = sizeof(PolygonCaseCode);
+	UINT Stride3 = sizeof(XMFLOAT4) + sizeof(UINT);
+	UINT Stride4 = sizeof(XMFLOAT4) + sizeof(XMFLOAT4);
+	UINT Stride5 = sizeof(PolygonCaseCode);
+
+	CompileGeometryShaderForStreamOutput<PolygonCaseCode>(Device, "NoneEmptyCellsGS.hlsl", "NoneEmptyCellsGS", &MainTerrain->NoneEmptyCellsGS, NoneEmptyCellsEntries, 1, Stride1, D3D11_SO_NO_RASTERIZED_STREAM);
+	CompileGeometryShaderForStreamOutput<PolygonCaseCode>(Device, "VertexListGS.hlsl", "VertexListGS", &MainTerrain->VertexListGS,VertexListEntries, 1, Stride2, D3D11_SO_NO_RASTERIZED_STREAM);
+	CompileGeometryShaderForStreamOutput<PolygonCaseCode>(Device, "SplatVertexIDGS.hlsl", "SplatVertexIDGS", &MainTerrain->SplatVertexIDGS, SplatVertexIDEntries, 2, Stride3);
+	CompileGeometryShaderForStreamOutput<PolygonCaseCode>(Device, "GenerateVerticesGS.hlsl", "GenerateVerticesGS", &MainTerrain->GenerateVerticesGS, GenerateVerticesEntries, 2, Stride4, D3D11_SO_NO_RASTERIZED_STREAM);
+	CompileGeometryShaderForStreamOutput<PolygonCaseCode>(Device, "GenerateIndicesGS.hlsl", "GenerateIndicesGS", &MainTerrain->GenerateIndicesGS, GenerateIndicesEntries, 1, Stride5, D3D11_SO_NO_RASTERIZED_STREAM);
+	
+	CompilePixelShader(Device, "SplatVertexIDPS.hlsl", "SplatVertexIDPS", &MainTerrain[0].SplatVertexIDPS);
+
 	MainTerrain->Mat = SimpleMat;
 
 	DrawVolume();
-
+	CreateVoxelMesh();
 	return S_OK;
 }
 
@@ -272,6 +315,7 @@ HRESULT Core::AllocVolumeSliceStreamBuffer(Terrain** AllocTerrain)
 	HRESULT Result;
 
 	D3D11_BUFFER_DESC BufferDesc{};
+	D3D11_SUBRESOURCE_DATA SubData{};
 
 	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_STREAM_OUTPUT;
 	BufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -283,6 +327,63 @@ HRESULT Core::AllocVolumeSliceStreamBuffer(Terrain** AllocTerrain)
 	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->VolumeStreamBackBuffer);
 	assert(Result == S_OK || Result == S_FALSE && "Failed to create volume stream back buffer.");
 
+
+	BufferDesc = {};
+	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	BufferDesc.ByteWidth = (sizeof(VolumeSliceUV) * 4) * 32;
+	BufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	
+	UINT VolumeSliceUVSize = 32;
+
+	VolumeSliceUV UV[4*32];
+	UINT Index = 0;
+	
+	for (int i = 0; i < VolumeSliceUVSize; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			UV[Index].UV = ScreenQuad->QuadMesh->Vertices[j].UV;
+			Index++;
+		}
+
+	}
+
+	SubData.pSysMem = UV;
+
+	Result = Device->CreateBuffer(&BufferDesc, &SubData, &AllocTerrain[0]->VolumeUVBuffer);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create volume uv buffer.");
+
+	return S_OK;
+}
+
+HRESULT Core::AllocTerrainStreamBuffers(Terrain** AllocTerrain)
+{
+	HRESULT Result;
+	D3D11_BUFFER_DESC BufferDesc{};
+
+	BufferDesc.ByteWidth = sizeof(UINT) * AllocTerrain[0]->Capacity;
+	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_STREAM_OUTPUT;
+	BufferDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->NoneEmptyCellsSO);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create NoneEmptyCellsSO buffer.");
+
+	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->VertexListSO);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create VertexListSO buffer.");
+
+	BufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_STREAM_OUTPUT;
+
+	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->GenerateIndicesSO);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create GenerateIndicesSO buffer.");
+
+	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_STREAM_OUTPUT;
+	BufferDesc.ByteWidth = (sizeof(XMUINT2) + sizeof(XMFLOAT4)) * AllocTerrain[0]->Capacity;
+	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->SplatVertexIDSO);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create SplatVertexIDSO buffer.");
+
+	BufferDesc.ByteWidth = (sizeof(XMFLOAT4) + sizeof(XMFLOAT4)) * AllocTerrain[0]->Capacity;
+	Result = Device->CreateBuffer(&BufferDesc, nullptr, &AllocTerrain[0]->GenerateVerticesSO);
+	assert(Result == S_OK || Result == S_FALSE && "Failed to create GenerateVerticesSO buffer.");
 
 	return S_OK;
 }
@@ -392,7 +493,7 @@ void Core::BindBuffer(Instance& BindInstance)
 	Context->IASetIndexBuffer(BindInstance.RenderModel->ModelMeshBuffer->IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 #endif
 #ifdef _INDEX32
-	Context->IASetIndexBuffer(BindInstance.RenderModel->ModelBuffer->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	Context->IASetIndexBuffer(BindInstance.RenderModel->ModelMeshBuffer->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 #endif
 
 
@@ -555,11 +656,100 @@ void Core::DrawVolume()
 
 }
 
-void Core::CreatePolygonCase()
+void Core::CreateVoxelMesh()
 {
+	static UINT Offset = 0;
+	static UINT VolumeUVStride = sizeof(VolumeSliceUV);
+	static UINT CaseCodeStride = sizeof(UINT);
+	
+	static ID3D11PixelShader* NullPS = nullptr;
+	static ID3D11RenderTargetView* NullRTV = nullptr;
+	static ID3D11Buffer* NullBuffer = nullptr;
+	
+	SetDebugName(MainTerrain[0].VertexIDVolume->RTV, "VertexID RTV");
+	SetDebugName(MainTerrain[0].VertexListSO, "VertexList SO");
+	SetDebugName(MainTerrain[0].SplatVertexIDSO, "SplatVertexID SO");
+	SetDebugName(MainTerrain[0].NoneEmptyCellsSO, "NoneEmptyCells SO");
+	SetDebugName(MainTerrain[0].VolumeUVBuffer, "VolumeUV VB");
+
+	// Clear Pass
+	Context->PSSetShader(NullPS, nullptr, 0);
+	Context->OMSetRenderTargets(1, &NullRTV, nullptr);
+
+	SwapChain->Present(0, 0);
+
+	// Pass "NoneEmptyCells"
+	Context->IASetInputLayout(MainTerrain[0].NoneEmptyCellsIL);
+	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	Context->IASetVertexBuffers(0, 1, &MainTerrain[0].VolumeUVBuffer, &VolumeUVStride, &Offset);
+	Context->IASetIndexBuffer(ScreenQuad->ModelMeshBuffer->IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	Context->VSSetShader(MainTerrain[0].NoneEmptyCellsVS, nullptr, 0);
+	Context->VSSetShaderResources(0, 1, &MainTerrain[0].VolumeTexture->SRV);
+	Context->GSSetShader(MainTerrain[0].NoneEmptyCellsGS, nullptr, 0);
+	Context->SOSetTargets(1, &MainTerrain[0].NoneEmptyCellsSO, &Offset);
+	
+	Context->DrawIndexedInstanced(6, MainTerrain[0].Capacity, 0, 0, 0);
+
+	SwapChain->Present(0, 0);
+
+	// Pass "VertexList"
+	Context->IASetInputLayout(MainTerrain[0].VertexListIL);
+	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+	Context->IASetVertexBuffers(0, 1, &MainTerrain[0].NoneEmptyCellsSO, &CaseCodeStride, &Offset);
+	Context->VSSetShader(MainTerrain[0].VertexListVS, nullptr, 0);
+	Context->GSSetShader(MainTerrain[0].VertexListGS, nullptr, 0);
+	Context->SOSetTargets(1, &MainTerrain[0].VertexListSO, &Offset);
+	Context->DrawAuto();
+
+	// Pass "SplatVertexID"
+	SwapChain->Present(0, 0);
+
+	Context->ClearState();
+
+	Context->OMSetRenderTargets(0, &MainTerrain[0].VertexIDVolume->RTV, nullptr);
+	Context->IASetVertexBuffers(0, 1, &MainTerrain[0].VertexListSO, &CaseCodeStride, &Offset);
+	Context->IASetInputLayout(MainTerrain[0].SplatVertexIDIL);
+	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+	Context->IASetVertexBuffers(0, 1, &MainTerrain[0].VertexListSO, &CaseCodeStride, &Offset);
+	Context->VSSetShader(MainTerrain[0].SplatVertexIDVS, nullptr, 0);
+	Context->GSSetShader(MainTerrain[0].SplatVertexIDGS, nullptr, 0);
+	Context->PSSetShader(MainTerrain[0].SplatVertexIDPS, nullptr, 0);
+	Context->SOSetTargets(1, &MainTerrain[0].SplatVertexIDSO, &Offset);
+	Context->DrawAuto();
+
+	SwapChain->Present(0,0);
+
+	// Clear Pass
+	Context->IASetVertexBuffers(0, 1, &NullBuffer, &VolumeUVStride, &Offset);
+	Context->PSSetShader(NullPS, nullptr, 0);
+	Context->OMSetRenderTargets(1, &NullRTV, nullptr);
+
+	// Pass "GenerateVertices"
+	Context->IASetInputLayout(MainTerrain[0].GenerateVerticesIL);
+	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+	Context->IASetVertexBuffers(0, 1, &MainTerrain[0].SplatVertexIDSO, &CaseCodeStride, &Offset);
+	Context->VSSetShader(MainTerrain[0].GenerateVerticesVS, nullptr, 0);
+	Context->GSSetShader(MainTerrain[0].GenerateVerticesGS, nullptr, 0);
+	Context->SOSetTargets(1, &MainTerrain[0].GenerateVerticesSO, &Offset);
+	Context->DrawAuto();
+
+	// Pass "GenerateIndices"
+	Context->IASetInputLayout(MainTerrain[0].GenerateIndicesIL);
+	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+	Context->IASetVertexBuffers(0, 1, &MainTerrain[0].NoneEmptyCellsSO, &CaseCodeStride, &Offset);
+	Context->VSSetShader(MainTerrain[0].GenerateIndicesVS, nullptr, 0);
+	Context->GSSetShader(MainTerrain[0].GenerateIndicesGS, nullptr, 0);
+	Context->GSSetShaderResources(0, 1, &MainTerrain[0].VertexIDVolume->SRV);
+	Context->SOSetTargets(1, &MainTerrain[0].GenerateIndicesSO, &Offset);
+	Context->DrawAuto();
 
 
-	return;
+	SwapChain->Present(0, 0);
+
 }
 
 HRESULT Core::Resize()

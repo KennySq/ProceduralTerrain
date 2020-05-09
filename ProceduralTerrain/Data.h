@@ -20,7 +20,7 @@ struct MeshBuffer
 	ID3D11Buffer* IndexBuffer = nullptr;
 	ID3D11Buffer* ConstBuffer = nullptr;
 	ID3D11Buffer* TerrainBuffer = nullptr;
-
+	
 };
 
 struct GeometryBuffer

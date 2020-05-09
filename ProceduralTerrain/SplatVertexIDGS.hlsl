@@ -6,7 +6,7 @@ struct GeometryInput
 
 struct GeometryOutput
 {
-    float4 Projection : POSITION0;
+    float4 Projection : SV_POSITION0;
     uint VertexID : TEXCOORD2;
     uint RTIndex : SV_RenderTargetArrayIndex;
 };

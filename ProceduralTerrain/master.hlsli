@@ -1,19 +1,19 @@
-float VoxelDim = 65;
-float VoxelDimMinusOne = 64;
+static float VoxelDim = 65;
+static float VoxelDimMinusOne = 64;
 	
-float2 VoxelSize = float2(1.0f / 64.0f, 0.0f);
-float ChunkSize = 4.0f;
-float Margin = 4;
-float VoxelDimPlusMargins = 73;
-float VoxelDimPlugMarginsMinusOne = 72;
+static float2 VoxelSize = float2(1.0f / 64.0f, 0.0f);
+static float ChunkSize = 4.0f;
+static float Margin = 4;
+static float VoxelDimPlusMargins = 73;
+static float VoxelDimPlugMarginsMinusOne = 72;
 	
-float2 InvVoxelDim = float2(1.0f / 65.0f, 0.0f);
-float2 InvVoxelDimPlusMargins = float2(1.0f / 73.0f, 0.0f);
-float2 InvVoxelDimPlusMarginsMinusOne = float2(1.0f / 72.0f, 0.0f);
+static float2 InvVoxelDim = float2(1.0f / 65.0f, 0.0f);
+static float2 InvVoxelDimPlusMargins = float2(1.0f / 73.0f, 0.0f);
+static float2 InvVoxelDimPlusMarginsMinusOne = float2(1.0f / 72.0f, 0.0f);
 
 cbuffer Table
 {
-	uint4 CaseNumpolys[] =
+	static uint4 CaseNumpolys[] =
 	{
 		{ 0, 0, 0, 0 },
 		{ 1, 0, 0, 0 },

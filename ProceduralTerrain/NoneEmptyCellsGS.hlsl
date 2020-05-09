@@ -9,7 +9,7 @@ struct GeometryOutput
 };
 
 [maxvertexcount(1)]
-void main(
+void NoneEmptyCellsGS(
 	point GeometryInput Input[1], 
 	inout PointStream< GeometryOutput> Stream
 )

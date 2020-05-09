@@ -1,8 +1,7 @@
 #include<master.hlsli>
 struct Vertex
 {
-    float2 UVWrite : POSITION0;
-    float2 UVRead : POSITION1;
+    float2 UV : POSITION0;
     uint InstanceID : SV_InstanceID;
 };
 
@@ -21,14 +20,17 @@ Texture3D DensityVolume0;
 SamplerState LinearClamp;
 SamplerState NearestClamp;
 
-Geometry MarchingCubeMeshVS(Vertex Input)
+Geometry NoneEmptyCellsVS(Vertex Input)
 {
     Geometry Output = (Geometry) 0;
 	
     int Inst = Input.InstanceID;
     
-    float3 ChunkPositionRead = float3(Input.UVRead.x, Input.UVRead.y, (Input.InstanceID + Margin) * InvVoxelDimPlusMargins.x);
-    float3 ChunkPositionWrite = float3(Input.UVWrite.x, Input.UVWrite.y, Input.InstanceID * InvVoxelDim.x);
+    float2 UVRead = float2((Input.UV.x * VoxelDimMinusOne + Margin) * InvVoxelDimPlusMarginsMinusOne.x, (Input.UV.y * VoxelDimMinusOne + Margin) * InvVoxelDimPlusMarginsMinusOne.x);
+    float2 UVWrite = float2(Input.UV.x, Input.UV.y);
+
+    float3 ChunkPositionRead = float3(UVRead.x, UVRead.y, (Input.InstanceID + Margin) * InvVoxelDimPlusMargins.x);
+    float3 ChunkPositionWrite = float3(UVWrite.x, UVWrite.y, Input.InstanceID * InvVoxelDim.x);
     
     float3 WorldSpace = WorldChunkPosition + ChunkPositionWrite * ChunkSize;
     
@@ -54,9 +56,12 @@ Geometry MarchingCubeMeshVS(Vertex Input)
     int CubeCase = (i0123.x) | (i0123.y << 1) | (i0123.z << 2) | (i0123.w << 3) |
                    (i4567.x << 4) | (i4567.y << 5) | (i4567.z << 6) | (i4567.w << 7);
     
-    uint3 Uint3Position = uint3(Input.UVWrite.xy * VoxelDimMinusOne.xx, Input.InstanceID);
+    uint3 Uint3Position = uint3(UVWrite.xy * VoxelDimMinusOne.xx, Input.InstanceID);
     
-    Output.Z8Y8X8Case = (Uint3Position.z << 24) | (Uint3Position.y << 16) | (Uint3Position.x << 8) | (CubeCase);
+    Output.Z8Y8X8Case = (Uint3Position.z << 24) |
+                        (Uint3Position.y << 16) |
+                        (Uint3Position.x << 8) |
+                        (CubeCase);
     
     return Output;
 }

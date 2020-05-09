@@ -142,7 +142,43 @@ static HRESULT CompileVertexShader(ID3D11Device* Device, string Path, Shader*& O
 	return Result;
 }
 
+static HRESULT CompileVertexShader(ID3D11Device* Device, string Path, string Entry, ID3D11VertexShader** pOutVS, ID3D11InputLayout** pOutIL, D3D11_INPUT_ELEMENT_DESC* InputElements, UINT InputElementsCount)
+{
+	USES_CONVERSION;
 
+	UINT Flag = 0;
+	HRESULT Result;
+
+	ID3DBlob* VBlob, * ErrBlob;
+
+#ifdef _DEBUG
+	Flag |= D3DCOMPILE_DEBUG;
+#endif
+
+	Result = D3DCompileFromFile(A2W(Path.c_str()), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, Entry.c_str(), "vs_5_0", 0, Flag, &VBlob, &ErrBlob);
+
+	if (FAILED(Result))
+	{
+		ErrBlob->Release();
+
+		return Result;
+	}
+
+	Result = Device->CreateInputLayout(InputElements, InputElementsCount,
+									   VBlob->GetBufferPointer(), VBlob->GetBufferSize(),
+									   pOutIL);
+	if (FAILED(Result))
+		return Result;
+
+	Result = Device->CreateVertexShader(VBlob->GetBufferPointer(), VBlob->GetBufferSize(), nullptr, pOutVS);
+
+	VBlob->Release();
+
+	if (FAILED(Result))
+		return Result;
+
+	return Result;
+}
 
 static HRESULT CompileVertexShader(ID3D11Device* Device, string Path, string Entry, ID3D11VertexShader** pOutVS, ID3D11InputLayout** pOutIL)
 {
@@ -340,6 +376,34 @@ static HRESULT CompileGeometryShaderForStreamOutput(ID3D11Device* Device, string
 	assert(Result == S_OK && "Failed to compile GS");
 
 	Result = Device->CreateGeometryShaderWithStreamOutput(GBlob->GetBufferPointer(), GBlob->GetBufferSize(), Entries, _countof(Entries), Stride, _countof(Stride), 0, nullptr, pOutGS);
+	assert(Result == S_OK && "Failed to create GS with SO");
+
+
+
+	return S_OK;
+
+}
+
+template<class _VertTy>
+static HRESULT CompileGeometryShaderForStreamOutput(ID3D11Device* Device, string Path, string Entry, ID3D11GeometryShader** pOutGS, D3D11_SO_DECLARATION_ENTRY* SOEntries, UINT EntryCounts, UINT Stride, UINT RasterizeFlag = 0)
+{
+	USES_CONVERSION;
+
+	HRESULT Result;
+
+	UINT CompileFlag = D3DCOMPILE_ENABLE_STRICTNESS;
+	ID3DBlob* GBlob = nullptr, * ErrBlob = nullptr;
+
+#ifdef _DEBUG
+	CompileFlag = D3DCOMPILE_DEBUG;
+#endif
+
+	UINT Strides[1] = { Stride };
+
+	Result = D3DCompileFromFile(A2W(Path.c_str()), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, Entry.c_str(), "gs_5_0", 0, CompileFlag, &GBlob, &ErrBlob);
+	assert(Result == S_OK && "Failed to compile GS");
+
+	Result = Device->CreateGeometryShaderWithStreamOutput(GBlob->GetBufferPointer(), GBlob->GetBufferSize(), SOEntries, EntryCounts, Strides, _countof(Strides), RasterizeFlag, nullptr, pOutGS);
 	assert(Result == S_OK && "Failed to create GS with SO");
 
 

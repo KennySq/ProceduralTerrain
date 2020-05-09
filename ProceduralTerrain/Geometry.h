@@ -23,6 +23,11 @@ struct Vertex
 	XMFLOAT2 UV;
 };
 
+struct VolumeSliceUV
+{
+	XMFLOAT2 UV;
+};
+
 struct VolumeSliceVertex
 {
 	XMFLOAT3 Position;
@@ -39,6 +44,11 @@ struct TerrainInstanceData
 {
 	XMFLOAT3 WorldPosition; // [64]{3}
 	float Density[8];
+};
+
+struct PolygonCaseCode
+{
+	UINT Z8Y8X8Flag;
 };
 
 

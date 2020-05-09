@@ -17,8 +17,6 @@ class Core
 
 	vector<Model*> ModelCache;
 	
-
-
 	HWND WindowHandle;
 	HINSTANCE HandleInstance;
 
@@ -107,6 +105,7 @@ public:
 
 	HRESULT AllocVolumeSliceBuffer(CustomModel<VolumeSliceVertex>** Quad);
 	HRESULT AllocVolumeSliceStreamBuffer(Terrain** AllocTerrain);
+	HRESULT AllocTerrainStreamBuffers(Terrain** AllocTerrain);
 
 	HRESULT AllocConstantBuffer(Model* AllocModel);
 	HRESULT AllocMeshBuffer(Model* AllocModel);
@@ -123,8 +122,14 @@ public:
 	void DrawTerrainDebug(Terrain* DrawTerrain);
 #endif
 
+#ifdef _DEBUG
+	_inline void SetDebugName(ID3D11DeviceChild* Resource, string Name) { HRESULT Result = Resource->SetPrivateData(WKPDID_D3DDebugObjectName, lstrlenA(Name.c_str()), Name.c_str());
+	Result;
+	}
+#endif
+
 	void DrawVolume();
-	void CreatePolygonCase();
+	void CreateVoxelMesh();
 
 	void DrawInstanceInstanced(Instance& DrawObject, UINT InstanceCount);
 
